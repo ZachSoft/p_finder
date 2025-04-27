@@ -2,6 +2,7 @@ class UserModel {
   final String uid;
   final String email;
   final String userType; // 'normal' or 'owner'
+  final String phoneNumber;
   final String profileImage; // base64 encoded image string
 
   UserModel({
@@ -9,6 +10,7 @@ class UserModel {
     required this.email,
     required this.userType,
     required this.profileImage,
+    required this.phoneNumber,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class UserModel {
       email: json['email'],
       userType: json['userType'],
       profileImage: json['profileImage'] ?? '',
+      phoneNumber: json['phoneNumber'] ?? '',
     );
   }
 
@@ -26,6 +29,7 @@ class UserModel {
       'email': email,
       'userType': userType,
       'profileImage': profileImage,
+      'phoneNumber': phoneNumber,
     };
   }
 }

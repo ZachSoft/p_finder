@@ -1,16 +1,18 @@
-// lib/screens/post_property_screen.dart
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:p_finder/controllers/AuthController.dart';
-import 'package:uuid/uuid.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:p_finder/Models/PropertyModel.dart';
 import 'package:p_finder/constants/Button.dart';
 import 'package:p_finder/constants/Constants.dart';
 import 'package:p_finder/constants/CustomTextField.dart';
+import 'package:p_finder/controllers/AuthController.dart';
 import 'package:p_finder/controllers/PropertyController.dart';
+import 'package:uuid/uuid.dart';
 
 class PostPropertyScreen extends StatefulWidget {
   @override
@@ -18,6 +20,65 @@ class PostPropertyScreen extends StatefulWidget {
 }
 
 class _PostPropertyScreenState extends State<PostPropertyScreen> {
+  // Add these variables
+  double? latitude;
+  double? longitude;
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      Get.snackbar('Error', 'Location services are disabled.',
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+      return;
+    }
+
+    // Check for location permissions
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        Get.snackbar('Error', 'Location permissions are denied.',
+            backgroundColor: Colors.redAccent, colorText: Colors.white);
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      Get.snackbar('Error',
+          'Location permissions are permanently denied. Enable them in settings.',
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+      return;
+    }
+
+    // Get the current location
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      latitude = position.latitude;
+      longitude = position.longitude;
+    });
+  }
+
+  Future<void> _selectLocationOnMap() async {
+    LatLng? selectedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapSelectionScreen(),
+      ),
+    );
+
+    if (selectedLocation != null) {
+      setState(() {
+        latitude = selectedLocation.latitude;
+        longitude = selectedLocation.longitude;
+      });
+    }
+  }
+
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
@@ -52,8 +113,11 @@ class _PostPropertyScreenState extends State<PostPropertyScreen> {
         descriptionController.text.isEmpty ||
         priceController.text.isEmpty ||
         locationController.text.isEmpty ||
-        _base64Image == null) {
-      Get.snackbar('Error', 'Please fill all fields and upload an image',
+        _base64Image == null ||
+        latitude == null ||
+        longitude == null) {
+      Get.snackbar('Error',
+          'Please fill all fields, upload an image, and select a location',
           backgroundColor: Colors.redAccent, colorText: Colors.white);
       return;
     }
@@ -63,12 +127,15 @@ class _PostPropertyScreenState extends State<PostPropertyScreen> {
     PropertyModel property = PropertyModel(
       ownerId: authController.currentUser.value!.uid,
       id: propertyId,
+      ownerPhoneNumber: authController.currentUser.value!.phoneNumber,
       title: titleController.text,
       description: descriptionController.text,
       price: price,
       imageBase64List: [_base64Image!], // single image in a list
       location: locationController.text,
       category: selectedCategory,
+      latitude: latitude!,
+      longitude: longitude!,
       amenities: [], // extend this later with extra fields if needed
     );
     propertyController.addProperty(property);
@@ -127,6 +194,29 @@ class _PostPropertyScreenState extends State<PostPropertyScreen> {
                 hint: "Location",
                 controller: locationController,
                 prefixIcon: Icons.location_on),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _getCurrentLocation,
+                  icon: Icon(Icons.my_location),
+                  label: Text("Current location"),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _selectLocationOnMap,
+                  icon: Icon(Icons.map),
+                  label: Text("Select on Map"),
+                ),
+              ],
+            ),
+            if (latitude != null && longitude != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Text(
+                  "Selected Location: ($latitude, $longitude)",
+                  style: TextStyle(color: AppColors.black),
+                ),
+              ),
             SizedBox(height: 16),
             DropdownButtonFormField<String>(
               decoration: InputDecoration(
@@ -154,6 +244,50 @@ class _PostPropertyScreenState extends State<PostPropertyScreen> {
             CustomButton(text: "Post Property", onPressed: _postProperty),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Map Selection Screen
+class MapSelectionScreen extends StatefulWidget {
+  @override
+  _MapSelectionScreenState createState() => _MapSelectionScreenState();
+}
+
+class _MapSelectionScreenState extends State<MapSelectionScreen> {
+  LatLng? _selectedLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Select Location"),
+      ),
+      body: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: LatLng(37.7749, -122.4194), // Default to San Francisco
+          zoom: 12,
+        ),
+        onTap: (LatLng location) {
+          setState(() {
+            _selectedLocation = location;
+          });
+        },
+        markers: _selectedLocation != null
+            ? {
+                Marker(
+                  markerId: MarkerId("selected-location"),
+                  position: _selectedLocation!,
+                ),
+              }
+            : {},
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pop(context, _selectedLocation);
+        },
+        child: Icon(Icons.check),
       ),
     );
   }

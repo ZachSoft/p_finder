@@ -31,12 +31,33 @@ class HomeScreen extends StatelessWidget {
             style: AppTextStyles.body.copyWith(fontSize: 11),
           ),
           SizedBox(width: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(100),
-            child: Helpers.imageFromBase64(
-                authController.currentUser.value!.profileImage,
-                height: 40,
-                width: 40),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'Edit Profile') {
+                // // Navigate to Edit Profile Screen
+                // Get.to(() => EditProfileScreen());
+              } else if (value == 'Logout') {
+                // Perform logout
+                authController.logout();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'Edit Profile',
+                child: Text('Edit Profile'),
+              ),
+              PopupMenuItem(
+                value: 'Logout',
+                child: Text('Logout'),
+              ),
+            ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(100),
+              child: Helpers.imageFromBase64(
+                  authController.currentUser.value!.profileImage,
+                  height: 40,
+                  width: 40),
+            ),
           ),
           SizedBox(width: 20),
         ],

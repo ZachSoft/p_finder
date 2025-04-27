@@ -11,7 +11,7 @@ class AuthController extends GetxController {
 
   // Initialize with an empty user object.
   var currentUser =
-      UserModel(uid: "", email: "", userType: "", profileImage: "").obs;
+      UserModel(uid: "", email: "", userType: "", profileImage: "",phoneNumber: '').obs;
 
   @override
   void onInit() {
@@ -38,7 +38,7 @@ class AuthController extends GetxController {
   }
 
   Future<void> signup(String email, String password, String userType,
-      {String? base64Image}) async {
+      {String? base64Image, phoneNumber}) async {
     try {
       UserCredential userCredential =
           await _firebaseRepo.signUp(email, password);
@@ -48,6 +48,7 @@ class AuthController extends GetxController {
         email: email,
         userType: userType,
         profileImage: base64Image ?? '',
+        phoneNumber: phoneNumber,
       );
       await _firebaseRepo.createUser(user);
       currentUser.value = user;
@@ -75,7 +76,7 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     await _firebaseRepo.logout();
     currentUser.value =
-        UserModel(uid: "", email: "", userType: "", profileImage: "");
+        UserModel(uid: "", email: "", userType: "", profileImage: "",phoneNumber: '');
     storage.remove('user');
     Get.offAllNamed('/login');
   }

@@ -15,6 +15,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   String userType = 'normal'; // "normal" or "seller"
   File? _profileImage;
   String? _base64Image;
@@ -39,8 +40,10 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _createAccount() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar("Error", "Email and password are required.",
+    if (emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        phoneController.text.isEmpty) {
+      Get.snackbar("Error", "Email, phone number, and password are required.",
           backgroundColor: Colors.redAccent, colorText: Colors.white);
       return;
     }
@@ -54,7 +57,8 @@ class _SignupScreenState extends State<SignupScreen> {
         emailController.text,
         passwordController.text,
         userType,
-        base64Image: _base64Image ?? '', // Prevent null error
+        base64Image: _base64Image ?? '',
+        phoneNumber: phoneController.text,
       );
     } catch (e) {
       Get.snackbar("Signup Failed", e.toString(),
@@ -69,7 +73,11 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Create an Account",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),)),
+      appBar: AppBar(
+          title: Text(
+        "Create an Account",
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      )),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: Column(
@@ -100,6 +108,11 @@ class _SignupScreenState extends State<SignupScreen> {
               obscureText: true,
             ),
             SizedBox(height: 16),
+            CustomTextField(
+              hint: "Phone number",
+              controller: phoneController,
+              prefixIcon: Icons.call,
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
